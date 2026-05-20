@@ -1,28 +1,38 @@
 #include "SHealth.h"
+
+#include "BmiLogic.h"
+#include "SHealthTypes.h"
+
 #include <cstdio>
+
+namespace {
+
+void printAgeGroupReport(const SHealth& shealth, bmi::AgeGroup group) {
+    const int decade = bmi::decadeStart(group);
+    printf("%d - underweight = %f, normal = %f, overweight = %f, obesity = %f\n",
+           decade,
+           shealth.getBmiRatio(decade, static_cast<int>(bmi::BmiCategory::Underweight)),
+           shealth.getBmiRatio(decade, static_cast<int>(bmi::BmiCategory::Normal)),
+           shealth.getBmiRatio(decade, static_cast<int>(bmi::BmiCategory::Overweight)),
+           shealth.getBmiRatio(decade, static_cast<int>(bmi::BmiCategory::Obesity)));
+}
+
+}  // namespace
 
 int main() {
     SHealth shealth;
-    shealth.calculateBmi("shealth.dat");
+    if (shealth.calculateBmi("shealth.dat") <= 0) {
+        return 1;
+    }
 
-    printf("20 - underweight = %f, normal = %f, overweight = %f, obesity = %f\n",
-           shealth.getBmiRatio(20, 100), shealth.getBmiRatio(20, 200),
-           shealth.getBmiRatio(20, 300), shealth.getBmiRatio(20, 400));
-    printf("30 - underweight = %f, normal = %f, overweight = %f, obesity = %f\n",
-           shealth.getBmiRatio(30, 100), shealth.getBmiRatio(30, 200),
-           shealth.getBmiRatio(30, 300), shealth.getBmiRatio(30, 400));
-    printf("40 - underweight = %f, normal = %f, overweight = %f, obesity = %f\n",
-           shealth.getBmiRatio(40, 100), shealth.getBmiRatio(40, 200),
-           shealth.getBmiRatio(40, 300), shealth.getBmiRatio(40, 400));
-    printf("50 - underweight = %f, normal = %f, overweight = %f, obesity = %f\n",
-           shealth.getBmiRatio(50, 100), shealth.getBmiRatio(50, 200),
-           shealth.getBmiRatio(50, 300), shealth.getBmiRatio(50, 400));
-    printf("60 - underweight = %f, normal = %f, overweight = %f, obesity = %f\n",
-           shealth.getBmiRatio(60, 100), shealth.getBmiRatio(60, 200),
-           shealth.getBmiRatio(60, 300), shealth.getBmiRatio(60, 400));
-    printf("70 - underweight = %f, normal = %f, overweight = %f, obesity = %f\n",
-           shealth.getBmiRatio(70, 100), shealth.getBmiRatio(70, 200),
-           shealth.getBmiRatio(70, 300), shealth.getBmiRatio(70, 400));
+    const bmi::AgeGroup groups[] = {
+        bmi::AgeGroup::Decade20, bmi::AgeGroup::Decade30, bmi::AgeGroup::Decade40,
+        bmi::AgeGroup::Decade50, bmi::AgeGroup::Decade60, bmi::AgeGroup::Decade70,
+    };
+
+    for (const auto group : groups) {
+        printAgeGroupReport(shealth, group);
+    }
 
     return 0;
 }
