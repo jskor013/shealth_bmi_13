@@ -9,6 +9,8 @@ add_library(shealth_lib
     src/main/cpp/SHealth.cpp
     src/main/cpp/BmiLogic.cpp
     src/main/cpp/CsvHealthRecordReader.cpp
+    src/main/cpp/Imputation.cpp
+    src/main/cpp/Statistics.cpp
 )
 target_include_directories(shealth_lib PUBLIC src/main/cpp)
 
@@ -29,7 +31,9 @@ enable_testing()
 
 # Test executable
 add_executable(SHealthBMITest src/test/cpp/SHealthBMITest.cpp)
+target_include_directories(SHealthBMITest PRIVATE src/test/cpp)
 target_link_libraries(SHealthBMITest PRIVATE shealth_lib GTest::gtest_main)
 
 include(GoogleTest)
-gtest_discover_tests(SHealthBMITest)
+gtest_discover_tests(SHealthBMITest
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

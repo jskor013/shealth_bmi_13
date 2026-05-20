@@ -39,6 +39,7 @@ bool CsvHealthRecordReader::read(std::vector<bmi::HealthRecord>& out) {
             }
 
             bmi::HealthRecord record;
+            record.id = std::stoi(tokens[0]);
             record.age = std::stoi(tokens[1]);
             record.weight = std::stod(tokens[2]);
             record.height = std::stod(tokens[3]);

@@ -7,8 +7,22 @@
 
 namespace {
 
+void printDistribution(int label, const bmi::BmiDistribution& dist) {
+    printf("%d - underweight = %f, normal = %f, overweight = %f, obesity = %f\n",
+           label,
+           dist.underweight,
+           dist.normal,
+           dist.overweight,
+           dist.obesity);
+}
+
 void printAgeGroupReport(const SHealth& shealth, bmi::AgeGroup group) {
     const int decade = bmi::decadeStart(group);
+    const auto dist = shealth.distributionForAgeGroup(group);
+    if (dist) {
+        printDistribution(decade, *dist);
+        return;
+    }
     printf("%d - underweight = %f, normal = %f, overweight = %f, obesity = %f\n",
            decade,
            shealth.getBmiRatio(decade, static_cast<int>(bmi::BmiCategory::Underweight)),
@@ -17,11 +31,42 @@ void printAgeGroupReport(const SHealth& shealth, bmi::AgeGroup group) {
            shealth.getBmiRatio(decade, static_cast<int>(bmi::BmiCategory::Obesity)));
 }
 
+void printOverallPopulation(const SHealth& shealth) {
+    const auto dist = shealth.overallPopulationRatios();
+    if (!dist) {
+        printf("overall - no records\n");
+        return;
+    }
+    printf("overall - underweight = %f, normal = %f, overweight = %f, obesity = %f\n",
+           dist->underweight,
+           dist->normal,
+           dist->overweight,
+           dist->obesity);
+}
+
+void printNormalUserIds(const SHealth& shealth) {
+    const auto ids = shealth.filterNormalUserIds();
+    printf("normal users count = %zu\n", ids.size());
+    constexpr std::size_t kSampleLimit = 20;
+    const std::size_t showCount = ids.size() < kSampleLimit ? ids.size() : kSampleLimit;
+    for (std::size_t i = 0; i < showCount; ++i) {
+        printf("  id = %d\n", ids[i]);
+    }
+    if (ids.size() > kSampleLimit) {
+        printf("  ... (%zu more)\n", ids.size() - kSampleLimit);
+    }
+}
+
 }  // namespace
 
 int main() {
     SHealth shealth;
-    if (shealth.calculateBmi("shealth.dat") <= 0) {
+    try {
+        if (shealth.calculateBmi("shealth.dat") <= 0) {
+            return 1;
+        }
+    } catch (const std::exception& ex) {
+        fprintf(stderr, "%s\n", ex.what());
         return 1;
     }
 
@@ -33,6 +78,9 @@ int main() {
     for (const auto group : groups) {
         printAgeGroupReport(shealth, group);
     }
+
+    printOverallPopulation(shealth);
+    printNormalUserIds(shealth);
 
     return 0;
 }

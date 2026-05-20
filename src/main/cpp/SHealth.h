@@ -33,7 +33,5 @@ private:
     std::array<bmi::BmiDistribution, bmi::kAgeGroupCount> distributions_{};
 
     bool loadRecords();
-    void imputeMissingWeights();
     void computeBmis();
-    void aggregateByAgeGroup();
 };

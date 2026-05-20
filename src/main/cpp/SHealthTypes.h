@@ -31,6 +31,7 @@ enum class AgeGroup : int {
 };
 
 struct HealthRecord {
+    int id = 0;
     int age = 0;
     double weight = 0.0;
     double height = 0.0;

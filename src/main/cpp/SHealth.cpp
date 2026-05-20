@@ -2,6 +2,8 @@
 
 #include "BmiLogic.h"
 #include "CsvHealthRecordReader.h"
+#include "Imputation.h"
+#include "Statistics.h"
 
 #include <iostream>
 
@@ -19,9 +21,10 @@ int SHealth::loadAndAnalyze() {
     if (!loadRecords()) {
         return 0;
     }
-    imputeMissingWeights();
+    imputation::imputeMissingWeights(records_);
+    imputation::imputeMissingHeights(records_);
     computeBmis();
-    aggregateByAgeGroup();
+    distributions_ = statistics::aggregateByAgeGroup(records_);
     return static_cast<int>(records_.size());
 }
 
@@ -34,77 +37,9 @@ bool SHealth::loadRecords() {
     return reader_->read(records_);
 }
 
-void SHealth::imputeMissingWeights() {
-    for (int decade = bmi::kMinAgeDecade; decade <= bmi::kMaxAgeDecade; decade += bmi::kAgeDecadeStep) {
-        double sum = 0.0;
-        int ageCount = 0;
-        for (const auto& record : records_) {
-            if (bmi::inAgeDecade(record.age, decade) && record.weight != 0.0) {
-                sum += record.weight;
-                ++ageCount;
-            }
-        }
-        if (ageCount == 0) {
-            continue;
-        }
-        const double average = sum / ageCount;
-        for (auto& record : records_) {
-            if (bmi::inAgeDecade(record.age, decade) && record.weight == 0.0) {
-                record.weight = average;
-            }
-        }
-    }
-}
-
 void SHealth::computeBmis() {
     for (auto& record : records_) {
         record.bmi = bmi::computeBmi(record.weight, record.height);
-    }
-}
-
-void SHealth::aggregateByAgeGroup() {
-    distributions_ = {};
-
-    for (int decade = bmi::kMinAgeDecade; decade <= bmi::kMaxAgeDecade; decade += bmi::kAgeDecadeStep) {
-        const auto group = bmi::ageGroupFromDecade(decade);
-        if (!group) {
-            continue;
-        }
-
-        std::array<int, 4> counts{};
-        int total = 0;
-        for (const auto& record : records_) {
-            if (!bmi::inAgeDecade(record.age, decade)) {
-                continue;
-            }
-            ++total;
-            const bmi::BmiCategory category = bmi::classifyBmi(record.bmi);
-            switch (category) {
-                case bmi::BmiCategory::Underweight:
-                    ++counts[0];
-                    break;
-                case bmi::BmiCategory::Normal:
-                    ++counts[1];
-                    break;
-                case bmi::BmiCategory::Overweight:
-                    ++counts[2];
-                    break;
-                case bmi::BmiCategory::Obesity:
-                    ++counts[3];
-                    break;
-            }
-        }
-
-        if (total == 0) {
-            continue;
-        }
-
-        const std::size_t index = bmi::ageGroupIndex(*group);
-        auto& dist = distributions_[index];
-        dist.underweight = static_cast<double>(counts[0]) * 100.0 / total;
-        dist.normal = static_cast<double>(counts[1]) * 100.0 / total;
-        dist.overweight = static_cast<double>(counts[2]) * 100.0 / total;
-        dist.obesity = static_cast<double>(counts[3]) * 100.0 / total;
     }
 }
 
@@ -145,15 +80,20 @@ std::optional<bmi::BmiDistribution> SHealth::distributionForAgeGroup(bmi::AgeGro
 }
 
 void SHealth::imputeMissingHeights() {
-    // Stub for README step-4: height-0 imputation by age-group average.
+    imputation::imputeMissingHeights(records_);
 }
 
 std::vector<int> SHealth::filterNormalUserIds() const {
-    // Stub for README step-4: return user IDs in normal BMI range.
-    return {};
+    std::vector<int> ids;
+    ids.reserve(records_.size());
+    for (const auto& record : records_) {
+        if (bmi::classifyBmi(record.bmi) == bmi::BmiCategory::Normal) {
+            ids.push_back(record.id);
+        }
+    }
+    return ids;
 }
 
 std::optional<bmi::BmiDistribution> SHealth::overallPopulationRatios() const {
-    // Stub for README step-4: overall category ratios across all users.
-    return std::nullopt;
+    return statistics::overallPopulationRatios(records_);
 }
